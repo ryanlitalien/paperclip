@@ -131,15 +131,33 @@ module Paperclip
     #
     # +#new(Paperclip::Attachment, options_hash)+
     # +#for(style_name, options_hash)+
-    def url(style_name = default_style, options = {})
-      default_options = {:timestamp => @options[:use_timestamp], :escape => true}
+    if Rails.env.development? or Rails.env.office_development? or Rails.env.ticker_dev?
+      def url(style_name = default_style, options = {})
+        default_options = {:timestamp => @options[:use_timestamp], :escape => true}
 
-      if options == true || options == false # Backwards compatibility.
-        @url_generator.for(style_name, default_options.merge(:timestamp => options))
-      else
-        @url_generator.for(style_name, default_options.merge(options))
+        if self.exists?
+          if options == true || options == false # Backwards compatibility.
+            @url_generator.for(style_name, default_options.merge(:timestamp => options))
+          else
+            @url_generator.for(style_name, default_options.merge(options))
+          end
+        else
+          options = default_options.merge(self.options.merge(options))
+          interpolate(options[:default_url], style_name)
+        end
+      end
+    else
+      def url(style_name = default_style, options = {})
+        default_options = {:timestamp => @options[:use_timestamp], :escape => true}
+
+        if options == true || options == false # Backwards compatibility.
+          @url_generator.for(style_name, default_options.merge(:timestamp => options))
+        else
+          @url_generator.for(style_name, default_options.merge(options))
+        end
       end
     end
+
 
     # Returns the path of the attachment as defined by the :path option. If the
     # file is stored in the filesystem the path refers to the path of the file
