@@ -131,33 +131,24 @@ module Paperclip
     #
     # +#new(Paperclip::Attachment, options_hash)+
     # +#for(style_name, options_hash)+
-    if Rails.env.development? or Rails.env.office_development? or Rails.env.ticker_dev?
-      def url(style_name = default_style, options = {})
-        default_options = {:timestamp => @options[:use_timestamp], :escape => true}
+    def url(style_name = default_style, options = {})
+      default_options = merge_options_with_defaults(options)
 
-        if self.exists?
-          if options == true || options == false # Backwards compatibility.
-            @url_generator.for(style_name, default_options.merge(:timestamp => options))
-          else
-            @url_generator.for(style_name, default_options.merge(options))
-          end
-        else
-          options = default_options.merge(self.options.merge(options))
-          interpolate(options[:default_url], style_name)
-        end
-      end
-    else
-      def url(style_name = default_style, options = {})
-        default_options = {:timestamp => @options[:use_timestamp], :escape => true}
-
-        if options == true || options == false # Backwards compatibility.
-          @url_generator.for(style_name, default_options.merge(:timestamp => options))
-        else
-          @url_generator.for(style_name, default_options.merge(options))
-        end
-      end
+      @url_generator.for(style_name, default_options)
     end
 
+    if Rails.env.development? or Rails.env.office_development? or Rails.env.ticker_dev?
+      def url_with_exists_check(style_name = default_style, options = {})
+        if self.exists?
+          url_without_exists_check(style_name, options)
+        else
+          result_options = self.options.merge(merge_options_with_defaults(options))
+          interpolate(result_options[:default_url], style_name)
+        end
+      end
+
+      alias_method_chain :url, :exists_check
+    end
 
     # Returns the path of the attachment as defined by the :path option. If the
     # file is stored in the filesystem the path refers to the path of the file
@@ -338,6 +329,17 @@ module Paperclip
     end
 
     private
+
+    def merge_options_with_defaults(options)
+      default_options = {:timestamp => @options[:use_timestamp], :escape => true}
+      fixed_options = options
+
+      if options == true || options == false # Backwards compatibility.
+        fixed_options = {:timestamp => options}
+      end
+
+      return default_options.merge(fixed_options)
+    end
 
     def path_option
       @options[:path].respond_to?(:call) ? @options[:path].call(self) : @options[:path]
