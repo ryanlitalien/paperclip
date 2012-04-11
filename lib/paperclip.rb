@@ -75,6 +75,12 @@ module Paperclip
       :log_command       => true,
       :swallow_stderr    => true
     }
+
+    if @options[:command_path].nil? and defined?(PhusionPassenger) and RUBY_PLATFORM =~ /darwin/
+      @options[:command_path] = "/opt/local/bin"
+    end
+
+    return @options
   end
 
   def self.io_adapters=(new_registry)

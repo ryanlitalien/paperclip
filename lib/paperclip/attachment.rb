@@ -159,6 +159,20 @@ module Paperclip
       path.respond_to?(:unescape) ? path.unescape : path
     end
 
+    # Returns attachment value as JSON object
+    def as_json(*args)
+      Hash[self.styles.map do |style, options|
+        attributes = { :url => self.url(style) }
+
+        if options[:geometry]
+          width, height = options[:geometry].split("x").map(&:to_i)
+          attributes.merge!(:width => width, :height => height)
+        end
+
+        [style, attributes]
+      end].as_json
+    end
+
     # Alias to +url+
     def to_s style_name = default_style
       url(style_name)
@@ -443,6 +457,14 @@ module Paperclip
         [message].flatten.each {|m| instance.errors.add(name, m) }
       end
     end
+
+    def flush_errors_with_better_messages
+      if(@errors[:processing])
+        @errors[:processing] = "The picture you chose could not be processed"
+      end
+      flush_errors_without_better_messages
+    end
+    alias_method_chain :flush_errors, :better_messages
 
     # called by storage after the writes are flushed and before @queued_for_writes is cleared
     def after_flush_writes
